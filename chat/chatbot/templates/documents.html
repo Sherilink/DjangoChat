@@ -1,0 +1,141 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>My Documents</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    .doc { margin: 12px 0; padding: 8px; border: 1px solid #eaeaea; }
+    .actions { display:inline-block; margin-left:12px; }
+    .alert { background:#ffd; padding:8px; border:1px solid #eee; }
+    .answer { margin-top:8px; padding:8px; background:#f6f9ff; border:1px solid #dfe8ff; }
+    .ask-row { margin-top:8px; }
+  </style>
+</head>
+<body>
+  <h2>My Documents</h2>
+
+  {% if messages %}
+    <div class="alert">
+      {% for msg in messages %}
+        <div class="{{ msg.tags }}">{{ msg }}</div>
+      {% endfor %}
+    </div>
+  {% endif %}
+
+  <h3>Upload a new document</h3>
+  <form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    <input type="file" name="document" required>
+    <button type="submit">Upload</button>
+  </form>
+
+  <hr>
+
+  <h3>Your uploaded documents</h3>
+  {% if documents %}
+    <ul>
+      {% for doc in documents %}
+        <li class="doc" id="doc-{{ doc.id }}">
+          <div>
+            <a href="{{ doc.file.url }}" target="_blank">{{ doc.title }}</a>
+
+            <!-- Download link -->
+            <span class="actions">
+              <a href="{% url 'download_document' doc.id %}">Download</a>
+            </span>
+
+            <!-- Delete form -->
+            <span class="actions">
+              <form method="post" action="{% url 'delete_document' doc.id %}" style="display:inline;">
+                {% csrf_token %}
+                <button type="submit" onclick="return confirm('Delete this document?');">Delete</button>
+              </form>
+            </span>
+          </div>
+
+          <!-- ASK UI: simple inline form to ask questions about this document -->
+          <div class="ask-row">
+            <form class="ask-form" data-doc-id="{{ doc.id }}" onsubmit="return submitAskForm(event, this);">
+              {% csrf_token %}
+              <input type="text" name="question" placeholder="Ask a question about this document..." required style="width:60%">
+              <button type="submit">Ask</button>
+            </form>
+
+            <div class="answer" id="answer-{{ doc.id }}" style="display:none;"></div>
+          </div>
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p>No documents uploaded yet.</p>
+  {% endif %}
+
+  <p><a href="{% url 'chat' %}">Back to chat</a></p>
+
+  <script>
+    // CSRF helper from Django docs
+    function getCookie(name) {
+      let cookieValue = null;
+      if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+          const cookie = cookies[i].trim();
+          // Does this cookie string begin with the name we want?
+          if (cookie.startsWith(name + '=')) {
+            cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+            break;
+          }
+        }
+      }
+      return cookieValue;
+    }
+    const csrftoken = getCookie('csrftoken');
+
+    async function submitAskForm(evt, form) {
+      evt.preventDefault();
+      const docId = form.dataset.docId;
+      const q = form.question.value.trim();
+      if (!q) return false;
+
+      const answerDiv = document.getElementById('answer-' + docId);
+      answerDiv.style.display = 'block';
+      answerDiv.innerText = 'Thinking...';
+
+      try {
+        const formData = new URLSearchParams();
+        formData.append('doc_id', docId);
+        formData.append('question', q);
+
+        const resp = await fetch("{% url 'ask_doc_question' %}", {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'X-CSRFToken': csrftoken
+          },
+          body: formData.toString(),
+          credentials: 'same-origin'
+        });
+
+        if (!resp.ok) {
+          const text = await resp.text();
+          answerDiv.innerText = 'Error: ' + resp.status + ' — ' + text;
+          return false;
+        }
+
+        const data = await resp.json();
+        if (data.answer) {
+          answerDiv.innerText = data.answer;
+        } else if (data.error) {
+          answerDiv.innerText = 'Error: ' + data.error;
+        } else {
+          answerDiv.innerText = 'No answer returned.';
+        }
+      } catch (err) {
+        answerDiv.innerText = 'Request failed: ' + err.toString();
+      }
+      return false;
+    }
+  </script>
+</body>
+</html>
