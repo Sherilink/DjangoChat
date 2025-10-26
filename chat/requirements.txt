@@ -5,3 +5,5 @@ python-dotenv
 openai
 requests
 # Add any other packages your project needs
+requests>=2.31.0
+
