@@ -339,3 +339,4 @@ def delete_all_chats(request):
         return JsonResponse({"status": "success", "message": "All chats deleted."})
     return JsonResponse({"error": "Invalid request"}, status=400)
 
+
