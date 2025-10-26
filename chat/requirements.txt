@@ -6,4 +6,12 @@ openai
 requests
 # Add any other packages your project needs
 requests>=2.31.0
+pypdf
+langchain
+langchain-community
+langchain-text-splitters
+llama-cpp-python
+faiss-cpu
+sentence-transformers
+
 
