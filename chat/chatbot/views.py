@@ -9,8 +9,6 @@ import threading
 
 threading.Thread(target=download_model.download_model).start()
 MODEL_PATH = download_model.download_model()
-from .llm import ChatBotLLM  
-bot = ChatBotLLM(model_path=MODEL_PATH)
 
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
