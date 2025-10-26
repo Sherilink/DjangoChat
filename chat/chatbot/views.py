@@ -8,7 +8,9 @@ from . import download_model
 import threading
 
 threading.Thread(target=download_model.download_model).start()
-download_model.download_model()
+MODEL_PATH = download_model.download_model()
+from .llm import ChatBotLLM  
+bot = ChatBotLLM(model_path=MODEL_PATH)
 
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
@@ -340,6 +342,7 @@ def delete_all_chats(request):
         Message.objects.filter(thread__user=request.user).delete()
         return JsonResponse({"status": "success", "message": "All chats deleted."})
     return JsonResponse({"error": "Invalid request"}, status=400)
+
 
 
 
